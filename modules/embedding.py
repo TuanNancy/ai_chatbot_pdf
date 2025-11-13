@@ -1,11 +1,8 @@
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import Chroma
-from modules.config import OPENROUTER_API_KEY, EMBEDDING_MODEL_NAME
+from modules.config import OPENROUTER_API_KEY, EMBEDDING_MODEL_NAME, VECTOR_STORE_DIR
 from typing import List, Optional
 import os
-
-# Đường dẫn đến thư mục lưu trữ vector store
-VECTOR_STORE_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "vector_store")
 
 # Khởi tạo OpenAIEmbeddings với OpenRouter
 embeddings = OpenAIEmbeddings(
@@ -50,14 +47,14 @@ def get_chroma_vectorstore(persist_directory: Optional[str] = None, collection_n
     
     Args:
         persist_directory: Đường dẫn thư mục lưu trữ vector store. 
-                          Mặc định sử dụng VECTOR_STORE_PATH
+                          Mặc định sử dụng VECTOR_STORE_DIR từ config
         collection_name: Tên collection trong Chroma
         
     Returns:
         Chroma vector store instance
     """
     if persist_directory is None:
-        persist_directory = VECTOR_STORE_PATH
+        persist_directory = VECTOR_STORE_DIR
     
     # Tạo thư mục nếu chưa tồn tại
     os.makedirs(persist_directory, exist_ok=True)
@@ -89,7 +86,7 @@ def create_chroma_vectorstore(texts: List[str], metadatas: Optional[List[dict]] 
         Chroma vector store instance đã được lưu
     """
     if persist_directory is None:
-        persist_directory = VECTOR_STORE_PATH
+        persist_directory = VECTOR_STORE_DIR
     
     # Tạo thư mục nếu chưa tồn tại
     os.makedirs(persist_directory, exist_ok=True)
