@@ -4,12 +4,11 @@ from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.retrievers import BaseRetriever
 from modules.config import OPENROUTER_API_KEY
-from typing import Optional
+import os
 
 
 def get_llm_response(retriever: BaseRetriever, question: str, 
-                     model_name: str,
-                     template: Optional[str] = None) -> str:
+                     model_name: str) -> str:
     """
     Tạo phản hồi từ LLM dựa trên retriever và câu hỏi
     
@@ -17,21 +16,14 @@ def get_llm_response(retriever: BaseRetriever, question: str,
         retriever: BaseRetriever instance để tìm kiếm context
         question: Câu hỏi cần trả lời
         model_name: Tên model LLM (bắt buộc)
-        template: Template cho prompt (optional, có template mặc định)
         
     Returns:
         Câu trả lời từ LLM dựa trên context được retrieve
     """
-    
-    # Template mặc định nếu không được cung cấp
-    if template is None:
-        template = """
-Answer the question based only on the following context:
-
-{context}
-
-Question: {question}
-"""
+    # Đọc prompt template từ file
+    prompt_file_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "prompts", "rag_prompt_universal.txt")
+    with open(prompt_file_path, "r", encoding="utf-8") as f:
+        template = f.read()
     
     # Tạo prompt template
     prompt = ChatPromptTemplate.from_template(template)
