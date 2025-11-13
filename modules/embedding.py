@@ -94,11 +94,9 @@ if OPENROUTER_API_KEY:
             model_name=EMBEDDING_MODEL_NAME,
             api_key=OPENROUTER_API_KEY
         )
-    except Exception as e:
-        # Log lỗi khi khởi tạo nhưng không raise để có thể test
-        import sys
-        if not sys.argv[0].endswith('pytest'):
-            print(f"⚠️ Cảnh báo khi khởi tạo embeddings: {e}")
+    except Exception:
+        # Silently fail khi khởi tạo để có thể test mà không cần API key
+        pass
 
 def get_embeddings():
     """

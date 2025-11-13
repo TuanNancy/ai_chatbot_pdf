@@ -150,17 +150,11 @@ with st.sidebar:
     else:
         st.warning("⚠️ Chưa có PDF nào được tải")
     
-    # Hiển thị thông tin API key (debug)
+    # Kiểm tra và hiển thị cảnh báo nếu thiếu API key
     from modules.config import OPENROUTER_API_KEY
     st.divider()
-    if OPENROUTER_API_KEY:
-        # Hiển thị một phần API key để verify (4 ký tự đầu và cuối)
-        masked_key = OPENROUTER_API_KEY[:4] + "..." + OPENROUTER_API_KEY[-4:] if len(OPENROUTER_API_KEY) > 8 else "***"
-        st.caption(f"File .env: {ENV_FILE}")
-    else:
-        st.error("❌ API Key chưa được load!")
-        st.caption(f"Đường dẫn file .env mong đợi: {ENV_FILE}")
-        st.caption(f"File .env tồn tại: {ENV_FILE.exists()}")
+    if not OPENROUTER_API_KEY:
+        st.error("❌ API Key chưa được cấu hình!")
         if ENV_FILE.exists():
             st.info("💡 File .env tồn tại nhưng OPENROUTER_API_KEY không được tìm thấy. Kiểm tra format trong file .env:")
             st.code("OPENROUTER_API_KEY=your_api_key_here", language=None)
@@ -235,10 +229,9 @@ if prompt := st.chat_input("Nhập câu hỏi của bạn..."):
                 st.error(error_msg)
                 st.session_state.messages.append({"role": "assistant", "content": error_msg})
             except Exception as e:
-                # Lỗi khác - hiển thị chi tiết để debug
+                # Lỗi khác
                 error_msg = f"❌ Lỗi không xác định: {str(e)}"
                 st.error(error_msg)
-                st.exception(e)  # Hiển thị full traceback trong Streamlit
                 st.session_state.messages.append({"role": "assistant", "content": error_msg})
 
 # Footer

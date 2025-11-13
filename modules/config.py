@@ -18,30 +18,6 @@ else:
 # API Keys
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
-# Debug: Kiểm tra xem API key có được load không (chỉ hiển thị trong development)
-if not OPENROUTER_API_KEY:
-    import sys
-    if not sys.argv[0].endswith('pytest'):
-        print(f"⚠️ Cảnh báo: OPENROUTER_API_KEY không được tìm thấy!")
-        print(f"   Đường dẫn file .env mong đợi: {ENV_FILE}")
-        print(f"   File .env tồn tại: {ENV_FILE.exists()}")
-        if ENV_FILE.exists():
-            print(f"   Nội dung file .env (ẩn API key):")
-            try:
-                with open(ENV_FILE, 'r', encoding='utf-8') as f:
-                    for line in f:
-                        if 'OPENROUTER_API_KEY' in line:
-                            # Ẩn giá trị API key
-                            parts = line.split('=', 1)
-                            if len(parts) == 2:
-                                print(f"   {parts[0]}=***")
-                            else:
-                                print(f"   {line.strip()}")
-                        else:
-                            print(f"   {line.strip()}")
-            except Exception as e:
-                print(f"   Không thể đọc file .env: {e}")
-
 # Embedding model từ OpenRouter
 # Các model khả dụng trên OpenRouter:
 # - "qwen/qwen3-embedding-0.6b" (Qwen - đang sử dụng)
