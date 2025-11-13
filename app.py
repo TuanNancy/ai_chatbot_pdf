@@ -1,11 +1,21 @@
 import streamlit as st
 import os
 import tempfile
+from pathlib import Path
+from dotenv import load_dotenv
 from modules.pdf_loader import load_and_split_pdf
 from modules.embedding import create_chroma_vectorstore
 from modules.retriever import load_retriever
 from modules.llm_response import get_llm_response
 from modules.config import UPLOAD_DIR, VECTOR_STORE_DIR
+
+# Đảm bảo load .env từ thư mục gốc project khi chạy Streamlit
+PROJECT_ROOT = Path(__file__).parent
+ENV_FILE = PROJECT_ROOT / ".env"
+if ENV_FILE.exists():
+    load_dotenv(dotenv_path=ENV_FILE, override=True)
+else:
+    load_dotenv(override=True)
 
 # Cấu hình trang
 st.set_page_config(
@@ -25,7 +35,14 @@ if "retriever" not in st.session_state:
     st.session_state.retriever = None
 
 # Model LLM mặc định (có thể thay đổi)
-DEFAULT_LLM_MODEL = "Qwen/Qwen3"
+# Các model khả dụng trên OpenRouter:
+# - "qwen/qwen-2.5-72b-instruct" (Qwen - khuyến nghị)
+# - "qwen/qwen-2.5-32b-instruct" (Qwen)
+# - "openai/gpt-4o" (OpenAI)
+# - "openai/gpt-4-turbo" (OpenAI)
+# - "anthropic/claude-3.5-sonnet" (Anthropic)
+# - "meta-llama/llama-3.1-70b-instruct" (Meta)
+DEFAULT_LLM_MODEL = "deepseek/deepseek-r1-0528-qwen3-8b"
 
 # Tạo thư mục upload nếu chưa tồn tại
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -55,12 +72,27 @@ def process_pdf(uploaded_file):
             # Tạo metadata cho mỗi chunk
             metadatas = [{"source": uploaded_file.name, "chunk_index": i} for i in range(len(chunks))]
             
+            # Kiểm tra API key trước khi tạo vector store
+            from modules.config import OPENROUTER_API_KEY
+            if not OPENROUTER_API_KEY:
+                st.error("❌ OPENROUTER_API_KEY chưa được cấu hình. Vui lòng tạo file .env và thêm OPENROUTER_API_KEY=your_api_key")
+                return False
+            
             # Tạo vector store từ chunks
-            vectorstore = create_chroma_vectorstore(
-                texts=chunks,
-                metadatas=metadatas,
-                persist_directory=VECTOR_STORE_DIR
-            )
+            try:
+                vectorstore = create_chroma_vectorstore(
+                    texts=chunks,
+                    metadatas=metadatas,
+                    persist_directory=VECTOR_STORE_DIR
+                )
+            except ValueError as ve:
+                # Lỗi validation (API key, model, etc.)
+                st.error(f"❌ {str(ve)}")
+                return False
+            except Exception as e:
+                # Lỗi khác
+                st.error(f"❌ Lỗi khi tạo vector store: {str(e)}")
+                return False
             
             # Load retriever từ vector store
             st.session_state.retriever = load_retriever(
@@ -118,6 +150,23 @@ with st.sidebar:
     else:
         st.warning("⚠️ Chưa có PDF nào được tải")
     
+    # Hiển thị thông tin API key (debug)
+    from modules.config import OPENROUTER_API_KEY
+    st.divider()
+    if OPENROUTER_API_KEY:
+        # Hiển thị một phần API key để verify (4 ký tự đầu và cuối)
+        masked_key = OPENROUTER_API_KEY[:4] + "..." + OPENROUTER_API_KEY[-4:] if len(OPENROUTER_API_KEY) > 8 else "***"
+        st.caption(f"File .env: {ENV_FILE}")
+    else:
+        st.error("❌ API Key chưa được load!")
+        st.caption(f"Đường dẫn file .env mong đợi: {ENV_FILE}")
+        st.caption(f"File .env tồn tại: {ENV_FILE.exists()}")
+        if ENV_FILE.exists():
+            st.info("💡 File .env tồn tại nhưng OPENROUTER_API_KEY không được tìm thấy. Kiểm tra format trong file .env:")
+            st.code("OPENROUTER_API_KEY=your_api_key_here", language=None)
+        else:
+            st.warning("⚠️ File .env không tồn tại. Vui lòng tạo file .env trong thư mục gốc project.")
+    
     if st.button("🗑️ Xóa lịch sử chat"):
         st.session_state.messages = []
         st.rerun()
@@ -158,20 +207,38 @@ if prompt := st.chat_input("Nhập câu hỏi của bạn..."):
                 # Sửa lỗi: nếu chưa upload PDF (chưa có retriever), báo lỗi rõ ràng
                 if not hasattr(st.session_state, "retriever") or st.session_state.retriever is None:
                     raise RuntimeError("❌ Không tìm thấy tài liệu hoặc retriever. Vui lòng tải PDF trước.")
+                
+                # Kiểm tra model name
+                if not llm_model or llm_model.strip() == "":
+                    raise ValueError("❌ Model LLM không được để trống. Vui lòng nhập model trong sidebar.")
+                
                 response = get_llm_response(
                     retriever=st.session_state.retriever,
                     question=prompt,
-                    model_name=llm_model
+                    model_name=llm_model.strip()
                 )
-                # Hiển thị phản hồi
+                
+                # Hiển thị phản hồi (response đã được validate trong get_llm_response)
                 st.markdown(response)
                 
                 # Lưu phản hồi vào lịch sử
                 st.session_state.messages.append({"role": "assistant", "content": response})
                 
-            except Exception as e:
-                error_msg = f"❌ Lỗi: {str(e)}"
+            except ValueError as ve:
+                # Lỗi validation (model, API key, etc.)
+                error_msg = str(ve)
                 st.error(error_msg)
+                st.session_state.messages.append({"role": "assistant", "content": error_msg})
+            except RuntimeError as re:
+                # Lỗi runtime (retriever không tồn tại, etc.)
+                error_msg = str(re)
+                st.error(error_msg)
+                st.session_state.messages.append({"role": "assistant", "content": error_msg})
+            except Exception as e:
+                # Lỗi khác - hiển thị chi tiết để debug
+                error_msg = f"❌ Lỗi không xác định: {str(e)}"
+                st.error(error_msg)
+                st.exception(e)  # Hiển thị full traceback trong Streamlit
                 st.session_state.messages.append({"role": "assistant", "content": error_msg})
 
 # Footer

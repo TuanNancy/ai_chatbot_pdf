@@ -1,4 +1,4 @@
-from langchain_community.vectorstores import Chroma
+from langchain_chroma import Chroma
 from langchain_core.retrievers import BaseRetriever
 from modules.config import VECTOR_STORE_DIR
 from modules.embedding import get_embeddings

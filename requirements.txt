@@ -1,5 +1,6 @@
 streamlit
 langchain-community
+langchain-chroma
 chromadb
 pymupdf
 python-dotenv
@@ -7,4 +8,6 @@ openai
 langchain-openai
 langchain-core
 langchain-text-splitters
+pytest
+pytest-cov
 
