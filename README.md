@@ -78,35 +78,38 @@ Xây dựng một chatbot thông minh có thể:
 
 ### Core Stack
 
-| Công nghệ | Phiên bản | Mục đích |
-|-----------|-----------|----------|
-| **Python** | 3.11+ | Ngôn ngữ lập trình chính |
-| **Streamlit** | Latest | Web UI framework |
-| **LangChain** | 0.1+ | RAG framework và orchestration |
-| **Chroma** | Latest | Vector database |
-| **PyMuPDF (fitz)** | Latest | PDF text extraction |
-| **OpenRouter API** | v1 | Unified API cho embeddings và LLMs |
+| Công nghệ          | Phiên bản | Mục đích                           |
+| ------------------ | --------- | ---------------------------------- |
+| **Python**         | 3.11+     | Ngôn ngữ lập trình chính           |
+| **Streamlit**      | Latest    | Web UI framework                   |
+| **LangChain**      | 0.1+      | RAG framework và orchestration     |
+| **Chroma**         | Latest    | Vector database                    |
+| **PyMuPDF (fitz)** | Latest    | PDF text extraction                |
+| **OpenRouter API** | v1        | Unified API cho embeddings và LLMs |
 
 ### Tại sao chọn các công nghệ này?
 
-- **OpenRouter**: 
+- **OpenRouter**:
+
   - Unified API cho nhiều LLM providers (OpenAI, Anthropic, Qwen, Meta...)
   - Hỗ trợ cả embedding và chat models
   - Dễ dàng switch models mà không cần đổi code
   - Cost-effective với nhiều free models
 
-- **Chroma**: 
+- **Chroma**:
+
   - Lightweight, embedded vector database
   - Không cần server riêng, persist local
   - Tích hợp tốt với LangChain
   - Performance tốt cho small-medium datasets
 
-- **PyMuPDF (fitz)**: 
+- **PyMuPDF (fitz)**:
+
   - Fast và accurate PDF text extraction
   - Hỗ trợ tốt các loại PDF (text-based, scanned với OCR)
   - Python-native, dễ tích hợp
 
-- **Streamlit**: 
+- **Streamlit**:
   - Rapid prototyping và deployment
   - Built-in components cho file upload, chat interface
   - Không cần frontend knowledge
@@ -177,7 +180,8 @@ Tạo file `.env` trong thư mục gốc project:
 OPENROUTER_API_KEY=your_api_key_here
 ```
 
-**Lưu ý**: 
+**Lưu ý**:
+
 - Lấy API key tại [OpenRouter Dashboard](https://openrouter.ai/dashboard/settings/api-keys)
 - Bật "Allow Free Models" và "Allow Paid Models" trong API key settings
 - Chọn providers phù hợp (Qwen cho embedding model)
@@ -266,11 +270,13 @@ ai_chatbot_pdf/
 **Chức năng**: Trích xuất text từ PDF và chia thành chunks
 
 **Key Functions**:
+
 - `load_pdf(file_path)`: Trích xuất text từ PDF bằng PyMuPDF
 - `split_text(text, chunk_size, chunk_overlap)`: Chia text thành chunks với overlap
 - `load_and_split_pdf(file_path)`: Wrapper function kết hợp cả 2
 
 **Kỹ thuật**:
+
 - Sử dụng `RecursiveCharacterTextSplitter` để giữ context
 - Chunk overlap để không mất thông tin ở ranh giới
 - Xử lý lỗi khi PDF không đọc được
@@ -280,11 +286,13 @@ ai_chatbot_pdf/
 **Chức năng**: Tạo embeddings cho text chunks
 
 **Key Classes/Functions**:
+
 - `OpenRouterEmbeddings`: Custom embeddings class cho OpenRouter API
 - `create_chroma_vectorstore()`: Tạo và lưu vector store
 - `get_chroma_vectorstore()`: Load vector store đã có
 
 **Kỹ thuật**:
+
 - Custom `Embeddings` class implement LangChain interface
 - Sử dụng OpenAI client với OpenRouter base URL
 - Error handling chi tiết với troubleshooting guide
@@ -295,9 +303,11 @@ ai_chatbot_pdf/
 **Chức năng**: Load retriever từ vector store
 
 **Key Functions**:
+
 - `load_retriever()`: Tạo retriever với configurable search parameters
 
 **Kỹ thuật**:
+
 - Sử dụng `as_retriever()` với `search_kwargs`
 - Default `k=4` documents được retrieve
 - Tự động tạo thư mục nếu chưa tồn tại
@@ -307,10 +317,12 @@ ai_chatbot_pdf/
 **Chức năng**: Tạo câu trả lời từ LLM dựa trên retrieved context
 
 **Key Functions**:
+
 - `get_llm_response()`: Main function tạo response
 - `format_documents()`: Format documents thành string cho prompt
 
 **Kỹ thuật**:
+
 - LangChain chain: `retriever → format → prompt → model → parser`
 - Custom RAG prompt để đảm bảo chỉ trả lời dựa trên context
 - Comprehensive error handling cho API errors
@@ -321,6 +333,7 @@ ai_chatbot_pdf/
 **Chức năng**: Centralized configuration
 
 **Key Features**:
+
 - Load environment variables từ `.env`
 - Path resolution cho cross-platform compatibility
 - Debug mode để kiểm tra API key loading
@@ -357,6 +370,7 @@ Xem chi tiết tại [tests/README.md](tests/README.md)
 ### Lỗi: "OPENROUTER_API_KEY không được tìm thấy"
 
 **Giải pháp**:
+
 1. Kiểm tra file `.env` có trong thư mục gốc project
 2. Format đúng: `OPENROUTER_API_KEY=your_key_here` (không có dấu cách quanh `=`)
 3. Restart Streamlit app sau khi sửa `.env`
@@ -364,6 +378,7 @@ Xem chi tiết tại [tests/README.md](tests/README.md)
 ### Lỗi: "Model không hợp lệ" hoặc "401/403"
 
 **Giải pháp**:
+
 1. Vào [OpenRouter API Keys](https://openrouter.ai/dashboard/settings/api-keys)
 2. Chọn API key → Edit
 3. Bật "Allow Free Models" và "Allow Paid Models"
@@ -375,11 +390,13 @@ Xem chi tiết tại [tests/README.md](tests/README.md)
 ### Lỗi: "Không tìm thấy nội dung liên quan"
 
 **Nguyên nhân có thể**:
+
 - Câu hỏi không khớp với nội dung PDF
 - PDF chưa được xử lý đúng (thử upload lại)
 - Vector store bị lỗi (xóa `data/vector_store/` và upload lại)
 
 **Giải pháp**:
+
 - Thử câu hỏi khác, cụ thể hơn
 - Upload lại PDF
 - Xóa vector store và tạo lại
@@ -387,11 +404,13 @@ Xem chi tiết tại [tests/README.md](tests/README.md)
 ### Lỗi: "LLM trả về response rỗng"
 
 **Nguyên nhân**:
+
 - Model không được phép truy cập
 - API key chưa có quyền cho model đó
 - Model không khả dụng
 
 **Giải pháp**:
+
 - Kiểm tra API key settings (xem trên)
 - Thử model khác (ví dụ: `qwen/qwen-2.5-32b-instruct`)
 - Kiểm tra model có khả dụng tại [OpenRouter Models](https://openrouter.ai/models)
@@ -399,11 +418,13 @@ Xem chi tiết tại [tests/README.md](tests/README.md)
 ### PDF không đọc được
 
 **Nguyên nhân**:
+
 - PDF bị mã hóa/password protected
 - PDF là scanned images (cần OCR)
 - PDF corrupted
 
 **Giải pháp**:
+
 - Unlock PDF nếu có password
 - Sử dụng PDF có text layer (không phải scanned)
 - Thử PDF khác
@@ -420,7 +441,7 @@ Xem chi tiết tại [tests/README.md](tests/README.md)
 ### 2. Model Selection
 
 - **Embedding**: `qwen/qwen3-embedding-0.6b` (free, tốt cho tiếng Việt)
-- **LLM**: 
+- **LLM**:
   - Free tier: `qwen/qwen-2.5-32b-instruct`
   - Paid: `qwen/qwen-2.5-72b-instruct` hoặc `openai/gpt-4o`
 
@@ -436,29 +457,6 @@ Xem chi tiết tại [tests/README.md](tests/README.md)
   - Chỉ trả lời dựa trên context
   - Không bịa thông tin
   - Trả lời tự nhiên, không nhắc đến "theo PDF"
-
-## 🚧 Roadmap / Future Improvements
-
-### Phase 1: Core Features ✅
-- [x] PDF upload và processing
-- [x] Vector store với Chroma
-- [x] RAG pipeline với OpenRouter
-- [x] Streamlit UI
-- [x] Error handling
-
-### Phase 2: Enhancements (Planned)
-- [ ] Support multiple PDFs trong một session
-- [ ] PDF preview trong UI
-- [ ] Export chat history
-- [ ] Advanced search với filters
-- [ ] Support cho các file types khác (DOCX, TXT)
-
-### Phase 3: Advanced Features (Future)
-- [ ] Multi-language support
-- [ ] Citation/source tracking
-- [ ] Fine-tuning embedding model
-- [ ] Batch processing
-- [ ] API endpoint cho integration
 
 ## 📄 License
 
@@ -479,4 +477,3 @@ Nếu có câu hỏi hoặc góp ý, vui lòng tạo issue hoặc pull request.
 ---
 
 **Made with ❤️ using Python, LangChain, OpenRouter, and Streamlit**
-
