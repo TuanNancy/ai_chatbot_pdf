@@ -1,7 +1,7 @@
-from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import Chroma
 from langchain_core.retrievers import BaseRetriever
-from modules.config import EMBEDDING_MODEL_NAME, OPENROUTER_API_KEY, VECTOR_STORE_DIR
+from modules.config import VECTOR_STORE_DIR
+from modules.embedding import get_embeddings
 from typing import Optional, Dict, Any
 import os
 
@@ -11,6 +11,8 @@ def load_retriever(persist_directory: Optional[str] = None,
                    search_kwargs: Optional[Dict[str, Any]] = None) -> BaseRetriever:
     """
     Load retriever từ Chroma vector store
+    
+    Sử dụng embedding từ OpenRouter API (Qwen/Qwen3-Embedding-0.6B) được cấu hình trong embedding.py
     
     Args:
         persist_directory: Đường dẫn thư mục lưu trữ vector store.
@@ -27,12 +29,8 @@ def load_retriever(persist_directory: Optional[str] = None,
     # Tạo thư mục nếu chưa tồn tại
     os.makedirs(persist_directory, exist_ok=True)
     
-    # Khởi tạo embedding function
-    embedding_function = OpenAIEmbeddings(
-        model=EMBEDDING_MODEL_NAME,
-        openai_api_key=OPENROUTER_API_KEY,  # type: ignore
-        openai_api_base="https://openrouter.ai/api/v1"  # type: ignore
-    )
+    # Sử dụng embedding function từ embedding.py (OpenRouter API - Qwen/Qwen3-Embedding-0.6B)
+    embedding_function = get_embeddings()
     
     # Load Chroma vector store
     vectorstore = Chroma(
