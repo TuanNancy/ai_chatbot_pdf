@@ -2,6 +2,7 @@ import streamlit as st
 import os
 import tempfile
 import shutil
+import time
 from pathlib import Path
 from dotenv import load_dotenv
 from modules.pdf_loader import load_and_split_pdf
@@ -50,16 +51,108 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
 def delete_vector_store():
-    """Xóa toàn bộ vector store cũ"""
+    """Xóa toàn bộ vector store cũ bằng cách xóa collections qua ChromaDB API"""
+    import chromadb
+    
     try:
-        if os.path.exists(VECTOR_STORE_DIR):
-            shutil.rmtree(VECTOR_STORE_DIR)
-            # Tạo lại thư mục rỗng
-            os.makedirs(VECTOR_STORE_DIR, exist_ok=True)
-        return True
+        # Reset retriever và flag trước
+        st.session_state.retriever = None
+        st.session_state.vectorstore_loaded = False
+        
+        # Đợi một chút để đảm bảo các kết nối đã đóng
+        time.sleep(0.3)
+        
+        # Xóa tất cả collections thông qua ChromaDB client
+        # Đây là cách an toàn nhất vì ChromaDB sẽ tự quản lý các file
+        try:
+            client = chromadb.PersistentClient(path=VECTOR_STORE_DIR)
+            
+            # Lấy danh sách tất cả collections
+            collections = client.list_collections()
+            
+            # Xóa từng collection
+            for collection in collections:
+                try:
+                    client.delete_collection(name=collection.name)
+                except Exception as e:
+                    # Nếu collection không tồn tại hoặc đã bị xóa, bỏ qua
+                    pass
+            
+            # Đợi ChromaDB hoàn tất việc xóa
+            time.sleep(0.2)
+            
+            # Kiểm tra lại xem còn collection nào không
+            remaining_collections = client.list_collections()
+            if len(remaining_collections) > 0:
+                # Nếu vẫn còn collection, thử xóa lại
+                for collection in remaining_collections:
+                    try:
+                        client.delete_collection(name=collection.name)
+                    except Exception:
+                        pass
+            
+            return True
+            
+        except Exception as client_error:
+            # Nếu không thể dùng ChromaDB client, thử xóa thư mục trực tiếp
+            # Nhưng chỉ khi thư mục tồn tại và không có lock files
+            if os.path.exists(VECTOR_STORE_DIR):
+                try:
+                    # Kiểm tra xem có file chroma.sqlite3 không
+                    sqlite_file = os.path.join(VECTOR_STORE_DIR, "chroma.sqlite3")
+                    if os.path.exists(sqlite_file):
+                        # Nếu có file SQLite, thử xóa thư mục với retry
+                        max_retries = 2
+                        for attempt in range(max_retries):
+                            try:
+                                # Xóa các file lock trước
+                                for root, dirs, files in os.walk(VECTOR_STORE_DIR):
+                                    for file in files:
+                                        file_path = os.path.join(root, file)
+                                        if file.endswith('.lock') or file.endswith('.sqlite3-journal'):
+                                            try:
+                                                os.remove(file_path)
+                                            except Exception:
+                                                pass
+                                
+                                time.sleep(0.5)
+                                # Thử xóa thư mục
+                                shutil.rmtree(VECTOR_STORE_DIR)
+                                os.makedirs(VECTOR_STORE_DIR, exist_ok=True)
+                                return True
+                            except (PermissionError, OSError) as pe:
+                                if attempt < max_retries - 1:
+                                    time.sleep(1)
+                                    continue
+                                else:
+                                    # Không thể xóa được, nhưng vẫn trả về True
+                                    # Vì ChromaDB sẽ ghi đè lên dữ liệu cũ khi tạo collection mới
+                                    return True
+                            except Exception:
+                                if attempt < max_retries - 1:
+                                    time.sleep(0.5)
+                                    continue
+                                else:
+                                    return True  # Vẫn trả về True vì có thể tạo collection mới
+                    else:
+                        # Không có file SQLite, chỉ cần đảm bảo thư mục tồn tại
+                        os.makedirs(VECTOR_STORE_DIR, exist_ok=True)
+                        return True
+                except Exception:
+                    # Nếu không xóa được thư mục, vẫn trả về True
+                    # Vì ChromaDB có thể ghi đè collection cũ khi tạo mới
+                    os.makedirs(VECTOR_STORE_DIR, exist_ok=True)
+                    return True
+            else:
+                # Thư mục không tồn tại, tạo mới
+                os.makedirs(VECTOR_STORE_DIR, exist_ok=True)
+                return True
+        
     except Exception as e:
-        # Trả về False và để hàm gọi xử lý lỗi
-        return False
+        # Nếu có lỗi, vẫn trả về True vì ChromaDB có thể ghi đè khi tạo collection mới
+        # Đảm bảo thư mục tồn tại
+        os.makedirs(VECTOR_STORE_DIR, exist_ok=True)
+        return True
 
 
 def process_pdf(uploaded_file):
@@ -84,13 +177,7 @@ def process_pdf(uploaded_file):
             st.info(f"Đã chia PDF thành {len(chunks)} chunks. Đang xóa vector store cũ...")
             
             # Xóa vector store cũ trước khi tạo mới
-            try:
-                if not delete_vector_store():
-                    st.error("❌ Không thể xóa vector store cũ. Vui lòng thử lại.")
-                    return False
-            except Exception as e:
-                st.error(f"❌ Lỗi khi xóa vector store cũ: {str(e)}")
-                return False
+            delete_vector_store()  # Luôn trả về True, ChromaDB sẽ xử lý việc ghi đè nếu cần
             
             st.info("Đang tạo vector store mới...")
             

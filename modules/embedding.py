@@ -254,6 +254,19 @@ def create_chroma_vectorstore(texts: List[str], metadatas: Optional[List[dict]] 
             else:
                 raise
         
+        # Xóa collection cũ nếu tồn tại để đảm bảo tạo mới hoàn toàn
+        try:
+            import chromadb
+            client = chromadb.PersistentClient(path=persist_directory)
+            try:
+                client.delete_collection(name=collection_name)
+            except Exception:
+                # Collection không tồn tại, bỏ qua
+                pass
+        except Exception:
+            # Không thể xóa collection, tiếp tục tạo mới (ChromaDB sẽ xử lý)
+            pass
+        
         # Tạo Chroma vector store từ texts
         try:
             vectorstore = Chroma.from_texts(
