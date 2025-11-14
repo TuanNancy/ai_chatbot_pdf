@@ -1,6 +1,7 @@
 import streamlit as st
 import os
 import tempfile
+import shutil
 from pathlib import Path
 from dotenv import load_dotenv
 from modules.pdf_loader import load_and_split_pdf
@@ -48,6 +49,19 @@ DEFAULT_LLM_MODEL = "deepseek/deepseek-r1-0528-qwen3-8b"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
+def delete_vector_store():
+    """Xóa toàn bộ vector store cũ"""
+    try:
+        if os.path.exists(VECTOR_STORE_DIR):
+            shutil.rmtree(VECTOR_STORE_DIR)
+            # Tạo lại thư mục rỗng
+            os.makedirs(VECTOR_STORE_DIR, exist_ok=True)
+        return True
+    except Exception as e:
+        # Trả về False và để hàm gọi xử lý lỗi
+        return False
+
+
 def process_pdf(uploaded_file):
     """Xử lý file PDF: lưu, load, split và tạo vector store"""
     tmp_file_path = None
@@ -67,7 +81,18 @@ def process_pdf(uploaded_file):
                 st.error("Không thể trích xuất text từ PDF. Vui lòng kiểm tra lại file.")
                 return False
             
-            st.info(f"Đã chia PDF thành {len(chunks)} chunks. Đang tạo vector store...")
+            st.info(f"Đã chia PDF thành {len(chunks)} chunks. Đang xóa vector store cũ...")
+            
+            # Xóa vector store cũ trước khi tạo mới
+            try:
+                if not delete_vector_store():
+                    st.error("❌ Không thể xóa vector store cũ. Vui lòng thử lại.")
+                    return False
+            except Exception as e:
+                st.error(f"❌ Lỗi khi xóa vector store cũ: {str(e)}")
+                return False
+            
+            st.info("Đang tạo vector store mới...")
             
             # Tạo metadata cho mỗi chunk
             metadatas = [{"source": uploaded_file.name, "chunk_index": i} for i in range(len(chunks))]
