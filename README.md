@@ -383,8 +383,8 @@ Xem chi tiết tại [tests/README.md](tests/README.md)
 2. Chọn API key → Edit
 3. Bật "Allow Free Models" và "Allow Paid Models"
 4. Chọn providers phù hợp:
-   - Qwen cho `qwen/qwen3-embedding-0.6b`
-   - OpenAI cho `text-embedding-ada-002`
+   - Qwen cho `....`
+   - OpenAI cho `....`
 5. Save changes và thử lại
 
 ### Lỗi: "Không tìm thấy nội dung liên quan"
@@ -412,7 +412,7 @@ Xem chi tiết tại [tests/README.md](tests/README.md)
 **Giải pháp**:
 
 - Kiểm tra API key settings (xem trên)
-- Thử model khác (ví dụ: `qwen/qwen-2.5-32b-instruct`)
+- Thử model khác (ví dụ: `...`)
 - Kiểm tra model có khả dụng tại [OpenRouter Models](https://openrouter.ai/models)
 
 ### PDF không đọc được
@@ -440,10 +440,10 @@ Xem chi tiết tại [tests/README.md](tests/README.md)
 
 ### 2. Model Selection
 
-- **Embedding**: `qwen/qwen3-embedding-0.6b` (free, tốt cho tiếng Việt)
+- **Embedding**: `...`
 - **LLM**:
-  - Free tier: `qwen/qwen-2.5-32b-instruct`
-  - Paid: `qwen/qwen-2.5-72b-instruct` hoặc `openai/gpt-4o`
+  - Free tier: `...`
+  - Paid: `...`
 
 ### 3. Retrieval Parameters
 
